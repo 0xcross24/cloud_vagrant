@@ -3,6 +3,7 @@ Vagrant.configure("2") do |config|
   config.ssh.forward_agent    = true
   config.ssh.insert_key       = false
   config.ssh.private_key_path =  ["~/.vagrant.d/insecure_private_key","~/.ssh/vagrant"]
+  
   config.vm.provision :shell, privileged: false do |s|
     ssh_pub_key = File.readlines("#{Dir.home}/.ssh/vagrant.pub").first.strip
     s.inline = <<-SHELL
@@ -39,6 +40,30 @@ Vagrant.configure("2") do |config|
       sudo systemctl start puppetserver.service
     SHELL
   end
+
+  config.vm.define "jenkins_01" do |jenkins_01|
+    jenkins_01.vm.provider "virtualbox" do |v|
+      v.memory = 4096
+      v.cpus = 4
+    end
+    jenkins_01.vm.network "public_network", ip: "192.168.1.103", bridge: "enp4s0f2np2"
+    jenkins_01.vm.hostname = "jenkins-01"
+    jenkins_01.vm.provision "shell", inline: <<-SHELL
+      curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
+      /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+      echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+      https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+      /etc/apt/sources.list.d/jenkins.list > /dev/null
+      sudo apt update -y
+      sudo apt install openjdk-11-jdk -y
+      sudo apt install jenkins -y
+      sudo systemctl start jenkins
+      sudo systemctl enable jenkins
+      sudo ufw allow 8080
+      sudo ufw allow 22
+      sudo ufw status
+      sudo ufw enable
+    SHELL
 
   config.vm.define "starcraft_fe_01" do |starcraft_fe_01|
     starcraft_fe_01.vm.network "public_network", ip: "192.168.1.101", bridge: "enp4s0f2np2"
