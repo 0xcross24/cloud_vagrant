@@ -1,5 +1,14 @@
 Vagrant.configure("2") do |config|
   config.vm.box = "generic/ubuntu2204"
+  config.ssh.forward_agent    = true
+  config.ssh.insert_key       = false
+  config.ssh.private_key_path =  ["~/.vagrant.d/insecure_private_key","~/.ssh/vagrant"]
+  config.vm.provision :shell, privileged: false do |s|
+    ssh_pub_key = File.readlines("#{Dir.home}/.ssh/vagrant.pub").first.strip
+    s.inline = <<-SHELL
+     echo #{ssh_pub_key} >> /home/$USER/.ssh/authorized_keys
+   SHELL
+  end
 
   def puppet_agent(vm_config)
     vm_config.vm.provision "shell", inline: <<-SHELL
@@ -12,14 +21,14 @@ Vagrant.configure("2") do |config|
     SHELL
   end 
 
-  config.vm.define "master" do |master|
-    master.vm.provider "virtualbox" do |v|
+  config.vm.define "puppetmaster_01" do |puppetmaster_01|
+    puppetmaster_01.vm.provider "virtualbox" do |v|
       v.memory = 3096
       v.cpus = 2
     end
-    master.vm.network "public_network", ip: "192.168.1.100", bridge: "enp4s0f2np2"
-    master.vm.hostname = "puppetmaster"
-    master.vm.provision "shell", inline: <<-SHELL
+    puppetmaster_01.vm.network "public_network", ip: "192.168.1.100", bridge: "enp4s0f2np2"
+    puppetmaster_01.vm.hostname = "puppetmaster-01"
+    puppetmaster_01.vm.provision "shell", inline: <<-SHELL
       sudo wget http://apt.puppetlabs.com/puppet7-release-jammy.deb
       sudo dpkg -i puppet7-release-jammy.deb
       sudo apt update -y 
