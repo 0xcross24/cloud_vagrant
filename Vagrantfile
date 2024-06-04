@@ -64,6 +64,7 @@ Vagrant.configure("2") do |config|
       sudo ufw status
       sudo ufw enable
     SHELL
+  end
 
   config.vm.define "starcraft_fe_01" do |starcraft_fe_01|
     starcraft_fe_01.vm.network "public_network", ip: "192.168.1.101", bridge: "enp4s0f2np2"
