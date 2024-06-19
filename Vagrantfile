@@ -18,7 +18,7 @@ Vagrant.configure("2") do |config|
       sudo apt update -y
       sudo apt upgrade -y
       sudo apt install -y puppet-agent
-      sudo echo "192.168.1.100 puppet" >> /etc/hosts
+      sudo echo "192.168.1.100 puppet puppetmaster-01" >> /etc/hosts
     SHELL
   end 
 
@@ -35,7 +35,7 @@ Vagrant.configure("2") do |config|
       sudo apt update -y 
       sudo apt upgrade -y
       sudo apt install -y puppetserver 
-      sudo echo "192.168.1.100 puppet" >> /etc/hosts
+      sudo echo "192.168.1.100 puppet puppetmaster-01" >> /etc/hosts
       sudo systemctl enable puppetserver.service
       sudo systemctl start puppetserver.service
     SHELL
@@ -48,22 +48,7 @@ Vagrant.configure("2") do |config|
     end
     jenkins_01.vm.network "public_network", ip: "192.168.1.103", bridge: "enp4s0f2np2"
     jenkins_01.vm.hostname = "jenkins-01"
-    jenkins_01.vm.provision "shell", inline: <<-SHELL
-      curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
-      /usr/share/keyrings/jenkins-keyring.asc > /dev/null
-      echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
-      https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
-      /etc/apt/sources.list.d/jenkins.list > /dev/null
-      sudo apt update -y
-      sudo apt install openjdk-11-jdk -y
-      sudo apt install jenkins -y
-      sudo systemctl start jenkins
-      sudo systemctl enable jenkins
-      sudo ufw allow 8080
-      sudo ufw allow 22
-      sudo ufw status
-      sudo ufw enable
-    SHELL
+    puppet_agent(jenkins_01)
   end
 
   config.vm.define "starcraft_fe_01" do |starcraft_fe_01|
