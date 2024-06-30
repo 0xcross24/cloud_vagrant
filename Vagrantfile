@@ -51,4 +51,11 @@ Vagrant.configure("2") do |config|
     starcraft_fe_02.vm.network "public_network", ip: "192.168.1.102", bridge: "enp4s0f2np2"
     starcraft_fe_02.vm.hostname = "starcraft-fe-02"
   end
+
+  config.vm.define "starcraft_be_01" do |starcraft_be_01|
+    puppet_agent(starcraft_be_01)
+    starcraft_be_01.vm.network "public_network", ip: "192.168.1.150", bridge:"enp4s0f2np2"
+    starcraft_be_01.vm.hostname = "starcraft-be-01"
+  end
 end
+
