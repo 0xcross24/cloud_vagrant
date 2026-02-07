@@ -1,54 +1,63 @@
 Vagrant.configure("2") do |config|
-  config.vm.box = "generic/ubuntu2204"
+  # SSH behavior
   config.ssh.forward_agent    = true
   config.ssh.insert_key       = false
-  config.ssh.private_key_path =  ["~/.vagrant.d/insecure_private_key","~/.ssh/vagrant"]
-  config.vm.provision :shell, privileged: false do |s|
-    ssh_pub_key = File.readlines("#{Dir.home}/.ssh/vagrant.pub").first.strip
-    s.inline = <<-SHELL
-     echo #{ssh_pub_key} >> /home/$USER/.ssh/authorized_keys
-   SHELL
-  end
+  config.ssh.private_key_path = [
+    "~/.vagrant.d/insecure_private_key",
+    "~/.ssh/vagrant"
+  ]
 
-  def puppet_agent(vm_config)
-    vm_config.vm.provision "shell", inline: <<-SHELL
-      sudo wget http://apt.puppetlabs.com/puppet7-release-jammy.deb
-      sudo dpkg -i puppet7-release-jammy.deb
-      sudo apt update -y
-      sudo apt upgrade -y
-      sudo apt install -y puppet-agent
-      sudo echo "192.168.1.100 puppet" >> /etc/hosts
-    SHELL
-  end 
+  # =========================
+  # Kali Linux VM (htb)
+  # =========================
+  config.vm.define "htb" do |htb|
+    htb.vm.box = "kalilinux/rolling"
+    htb.vm.hostname = "htb"
 
-  config.vm.define "puppetmaster_01" do |puppetmaster_01|
-    puppetmaster_01.vm.provider "virtualbox" do |v|
-      v.memory = 3096
-      v.cpus = 2
+    # Bridged network (CHANGE bridge if needed)
+    htb.vm.network "public_network",
+      ip: "192.168.1.40",
+      bridge: "eno1"
+
+    # RDP forward (guest 3389 -> host 3391)
+    htb.vm.network "forwarded_port",
+      guest: 3389,
+      host: 3391
+
+    htb.vm.provider "virtualbox" do |v|
+      v.memory = 8192
+      v.cpus   = 4
+      v.gui    = false
     end
-    puppetmaster_01.vm.network "public_network", ip: "192.168.1.100", bridge: "enp4s0f2np2"
-    puppetmaster_01.vm.hostname = "puppetmaster-01"
-    puppetmaster_01.vm.provision "shell", inline: <<-SHELL
-      sudo wget http://apt.puppetlabs.com/puppet7-release-jammy.deb
-      sudo dpkg -i puppet7-release-jammy.deb
-      sudo apt update -y 
-      sudo apt upgrade -y
-      sudo apt install -y puppetserver 
-      sudo echo "192.168.1.100 puppet" >> /etc/hosts
-      sudo systemctl enable puppetserver.service
-      sudo systemctl start puppetserver.service
-    SHELL
   end
 
-  config.vm.define "starcraft_fe_01" do |starcraft_fe_01|
-    starcraft_fe_01.vm.network "public_network", ip: "192.168.1.101", bridge: "enp4s0f2np2"
-    starcraft_fe_01.vm.hostname = "starcraft-fe-01"
-    puppet_agent(starcraft_fe_01)
-  end
+  # =========================
+  # Windows 10 VM (sb)
+  # =========================
+  config.vm.define "sb" do |sb|
+    sb.vm.box = "gusztavvargadr/windows-10"
+    sb.vm.hostname = "stealth"
 
-  config.vm.define "starcraft_fe_02" do |starcraft_fe_02|
-    puppet_agent(starcraft_fe_02)
-    starcraft_fe_02.vm.network "public_network", ip: "192.168.1.102", bridge: "enp4s0f2np2"
-    starcraft_fe_02.vm.hostname = "starcraft-fe-02"
+    # Bridged DHCP (CHANGE bridge if needed)
+    sb.vm.network "public_network",
+      type: "dhcp",
+      bridge: "eno1",
+      use_dhcp_assigned_default_route: true
+
+    # RDP forward (guest 3389 -> host 3390)
+    sb.vm.network "forwarded_port",
+      guest: 3389,
+      host: 3390
+
+    sb.vm.provider "virtualbox" do |vb|
+      vb.memory = 4096
+      vb.cpus   = 2
+      vb.name   = "StealthVM"
+
+      vb.customize ["modifyvm", :id, "--acpi", "on"]
+      vb.customize ["modifyvm", :id, "--paravirtprovider", "default"]
+      vb.customize ["setextradata", :id, "VBoxInternal2/IdleShutdownTimeout", "0"]
+    end
   end
 end
+
