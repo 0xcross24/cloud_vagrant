@@ -59,5 +59,34 @@ Vagrant.configure("2") do |config|
       vb.customize ["setextradata", :id, "VBoxInternal2/IdleShutdownTimeout", "0"]
     end
   end
+  
+  # =========================
+  # Windows 10 VM (wk)
+  # =========================
+  config.vm.define "wk" do |wk|
+    wk.vm.box = "gusztavvargadr/windows-10"
+    wk.vm.hostname = "wk"
+
+    # Bridged DHCP (same network as sb)
+    wk.vm.network "public_network",
+      type: "dhcp",
+      bridge: "eno1",
+      use_dhcp_assigned_default_route: true
+
+    # RDP forward (guest 3389 -> host 3392)  << different port from sb
+    wk.vm.network "forwarded_port",
+      guest: 3389,
+      host: 3392
+
+    wk.vm.provider "virtualbox" do |vb|
+      vb.memory = 4096
+      vb.cpus   = 2
+      vb.name   = "WK-VM"
+
+      vb.customize ["modifyvm", :id, "--acpi", "on"]
+      vb.customize ["modifyvm", :id, "--paravirtprovider", "default"]
+      vb.customize ["setextradata", :id, "VBoxInternal2/IdleShutdownTimeout", "0"]
+    end
+  end
 end
 
